@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flight Booking</title>
+  <link rel="stylesheet" href="flight.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <header>
+    <h1>WITCON</h1>
+  </header>
+  <main>
+    <section id="search-section">
+      <h2>Find Your Flight</h2>
+      <form id="searchForm">
+        <div class="form-group">
+          <label for="origin">Origin:</label>
+          <input type="text" id="origin" placeholder="Enter Origin" list="locations" required>
+        </div>
+        <div class="form-group">
+          <label for="destination">Destination:</label>
+          <input type="text" id="destination" placeholder="Enter Destination" list="locations" required>
+        </div>
+        <div class="form-group">
+          <label for="date">Date:</label>
+          <input type="date" id="date" required>
+        </div>
+        <button type="submit"><i class="fa fa-search"></i> Search Flights</button>
+        <datalist id="locations">
+          <option value="New York"></option>
+          <option value="London"></option>
+          <option value="Los Angeles"></option>
+          <option value="Tokyo"></option>
+          <option value="Mumbai"></option>
+          <option value="Dubai"></option>
+        </datalist>
+      </form>
+    </section>
+    <section id="results-section">
+      <h2>Available Flights</h2>
+      <div id="filters">
+        <label for="priceFilter">Max Price: $<span id="priceValue">700</span></label>
+        <input type="range" id="priceFilter" min="100" max="1000" value="700">
+      </div>
+      <div id="results"></div>
+    </section>
+  </main>
+  <script src="flight.js"></script>
+</body>
+</html>
