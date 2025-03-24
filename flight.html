@@ -1,53 +1,314 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flight Booking</title>
   <link rel="stylesheet" href="flight.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
+
 <body>
-  <header>
-    <h1>WITCON</h1>
-  </header>
-  <main>
-    <section id="search-section">
-      <h2>Find Your Flight</h2>
-      <form id="searchForm">
+  <div id="app">
+    <!-- Navbar -->
+    <header>
+      <nav>
+        <h1>✈️WITCON</h1>
+        <ul class="navbar">
+          <li><a href="#" @click="showLoginSection()">Home</a></li>
+          <li><a href="#" @click="showSearchSection()">Flights</a></li>
+          <li><a href="#" @click="showHotelsSection()">Hotels</a></li>
+          <li><a href="#" @click="showCarsSection()">Cars</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- Login Section -->
+    <section v-if="currentSection === 'login'" data-section="login">
+      <form @submit.prevent="login">
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" v-model="email" placeholder="Enter your email" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" v-model="password" placeholder="Enter your password" required>
+        </div>
+        <div class="form-group">
+          <input type="checkbox" v-model="rememberMe"> Remember Me
+        </div>
+        <div class="form-group button-group">
+          <button type="button" @click="showSignupSection()">Create Account</button>
+          <button type="button" @click="guestLogin">Guest Login</button>
+        </div>
+        <div class="form-group">
+          <a href="#" @click="showForgotPasswordSection()">Forgot Password?</a>
+        </div>
+        <button type="submit"><i class="fa fa-sign-in"></i> Login</button>
+      </form>
+    </section>
+
+    <!-- Signup Section -->
+    <section v-if="currentSection === 'signup'" data-section="signup">
+      <form @submit.prevent="signup">
+        <div class="form-group">
+          <label for="name">Name:</label>
+          <input type="text" v-model="name" placeholder="Enter your name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" v-model="email" placeholder="Enter your email" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" v-model="password" placeholder="Enter your password" required>
+        </div>
+        <button type="submit"><i class="fa fa-user-plus"></i> Sign Up</button>
+      </form>
+    </section>
+
+    <!-- Forgot Password Section -->
+    <section v-if="currentSection === 'forgot-password'" data-section="forgot-password">
+      <form @submit.prevent="resetPassword">
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" v-model="email" placeholder="Enter your email" required>
+        </div>
+        <button type="submit"><i class="fa fa-key"></i> Reset Password</button>
+      </form>
+    </section>
+
+    <!-- Flight Search Section -->
+    <section v-if="currentSection === 'search'" data-section="search">
+      <form @submit.prevent="searchFlights">
         <div class="form-group">
           <label for="origin">Origin:</label>
-          <input type="text" id="origin" placeholder="Enter Origin" list="locations" required>
+          <input type="text" v-model="searchParams.origin" placeholder="Enter Origin" list="locations" required>
         </div>
         <div class="form-group">
           <label for="destination">Destination:</label>
-          <input type="text" id="destination" placeholder="Enter Destination" list="locations" required>
+          <input type="text" v-model="searchParams.destination" placeholder="Enter Destination" list="locations" required>
         </div>
         <div class="form-group">
           <label for="date">Date:</label>
-          <input type="date" id="date" required>
+          <input type="date" v-model="searchParams.date" required>
+        </div>
+        <div class="form-group">
+          <label for="priceFilter">Price: £{{ searchParams.maxPrice }}</label>
+          <input type="range" v-model="searchParams.maxPrice" min="0" max="1000">
+        </div>
+        <div class="form-group">
+          <label for="sortBy">Sort By:</label>
+          <select v-model="sortBy">
+            <option value="price">Price (Low to High)</option>
+            <option value="duration">Duration</option>
+            <option value="airline">Airline</option>
+          </select>
         </div>
         <button type="submit"><i class="fa fa-search"></i> Search Flights</button>
         <datalist id="locations">
-          <option value="New York"></option>
           <option value="London"></option>
-          <option value="Los Angeles"></option>
           <option value="Tokyo"></option>
-          <option value="Mumbai"></option>
-          <option value="Dubai"></option>
         </datalist>
       </form>
     </section>
-    <section id="results-section">
-      <h2>Available Flights</h2>
-      <div id="filters">
-        <label for="priceFilter">Max Price: $<span id="priceValue">700</span></label>
-        <input type="range" id="priceFilter" min="100" max="1000" value="700">
+
+    <!-- Flight Results Section -->
+    <section v-if="currentSection === 'results'">
+      <div v-if="isLoading" class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i> Loading...
       </div>
-      <div id="results"></div>
+      <div v-else id="results">
+        <div v-if="filteredFlights.length > 0">
+          <div v-for="flight in filteredFlights" :key="flight.id" class="flight-card" @click="selectedFlight = flight">
+            <p><strong>Airline:</strong> {{ flight.name }}</p>
+            <p><strong>Available Seats:</strong> {{ flight.seats }}</p>
+            <p><strong>Price:</strong> £{{ flight.price }}</p>
+            <button class="book-btn" @click.stop="bookFlight(flight.id)">Book Now</button>
+          </div>
+        </div>
+        <div v-else>
+          <p class="no-flights-message" v-if="noFlightsFound">There are no flights available for this criteria.</p>
+        </div>
+      </div>
     </section>
-  </main>
+
+    <!-- Passenger Form for Flights -->
+    <section v-if="showPassengerForm">
+      <h2 style="text-align: center; text-decoration: underline;">Itinerary</h2>
+      <form @submit.prevent="submitPassengerForm">
+        <div class="form-group">
+          <label for="firstName">First Name:</label>
+          <input type="text" v-model="passenger.firstName" placeholder="Enter First Name" required>
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last Name:</label>
+          <input type="text" v-model="passenger.lastName" placeholder="Enter Last Name" required>
+        </div>
+        <div class="form-group">
+          <label for="passportNumber">Passport Number:</label>
+          <input type="text" v-model="passenger.passportNumber" placeholder="Enter Passport Number" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" v-model="passenger.email" placeholder="Enter Email" required>
+        </div>
+
+        <!-- Seat Selection -->
+        <div class="form-group">
+          
+          <div class="seat-layout">
+            <div v-for="row in availableSeats" :key="row.row" class="seat-row">
+              <div v-for="seat in row.seats" :key="seat" class="seat" 
+                   :class="{ selected: passenger.seat === seat, aisle: seat === '' }"
+                   @click="seat && (passenger.seat = seat)">
+                {{ seat || ' ' }}
+              </div>
+            </div>
+          </div>
+        </div>          
+
+        <button type="submit"><i class="fa fa-check"></i> Confirm Booking</button>
+        <button type="button" @click="showPassengerForm = false"><i class="fa fa-times"></i> Cancel</button>
+      </form>
+    </section>
+
+    <!-- Hotels Section -->
+    <section v-if="currentSection === 'hotels'" data-section="hotels">
+      <form @submit.prevent="searchHotels">
+        <div class="form-group">
+          <label for="location">Location:</label>
+          <input type="text" v-model="hotelSearchParams.location" placeholder="Enter location" required>
+        </div>
+        <div class="form-group">
+          <label for="checkin">Check-in:</label>
+          <input type="date" v-model="hotelSearchParams.checkin" required>
+        </div>
+        <div class="form-group">
+          <label for="checkout">Check-out:</label>
+          <input type="date" v-model="hotelSearchParams.checkout" required>
+        </div>
+        <div class="form-group">
+          <label for="guests">Guests:</label>
+          <input type="number" v-model="hotelSearchParams.guests" min="1" max="10" required>
+        </div>
+        <button type="submit"><i class="fa fa-search"></i> Search Hotels</button>
+      </form>
+
+      <div v-if="hotelSearchPerformed">
+        <div v-if="hotelResults.length > 0" id="hotel-results">
+          <div v-for="hotel in hotelResults" :key="hotel.id" class="hotel-card">
+            <h3>{{ hotel.name }}</h3>
+            <p>Rating: {{ hotel.rating }}</p>
+            <p>Location: {{ hotel.location }}</p>
+            <p>Price: £{{ hotel.price }} per night</p>
+            <button @click="bookHotel(hotel.id)">Book Now</button>
+          </div>
+        </div>
+        <div v-else>
+          <p class="no-hotels-message">No hotels found for the selected criteria.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hotel Passenger Form -->
+    <section v-if="currentSection === 'hotels' && showHotelPassengerForm">
+      <h2 style="text-align: center; text-decoration: underline;">Guest Information</h2>
+      <form @submit.prevent="submitHotelPassengerForm">
+        <div class="form-group">
+          <label for="firstName">First Name:</label>
+          <input type="text" v-model="hotelPassenger.firstName" placeholder="Enter First Name" required>
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last Name:</label>
+          <input type="text" v-model="hotelPassenger.lastName" placeholder="Enter Last Name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" v-model="hotelPassenger.email" placeholder="Enter Email" required>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number:</label>
+          <input type="text" v-model="hotelPassenger.phone" placeholder="Enter Phone Number" required>
+        </div>
+        <button type="submit"><i class="fa fa-check"></i> Confirm Booking</button>
+        <button type="button" @click="showHotelPassengerForm = false"><i class="fa fa-times"></i> Cancel</button>
+      </form>
+    </section>
+
+    <!-- Cars Section -->
+    <section v-if="currentSection === 'cars'" data-section="cars">
+      <form @submit.prevent="searchCars">
+        <div class="form-group">
+          <label for="pickupLocation">Location:</label>
+          <input type="text" v-model="carSearchParams.pickupLocation" placeholder="Enter location" required>
+        </div>
+        <div class="form-group">
+          <label for="pickupDate">Date:</label>
+          <input type="date" v-model="carSearchParams.pickupDate" required>
+        </div>
+        <div class="form-group">
+          <label for="carType">Type:</label>
+          <select v-model="carSearchParams.carType">
+            <option value="basic">Basic</option>
+            <option value="luxury">Luxury</option>
+            <option value="green">Green</option>
+          </select>
+        </div>
+        <button type="submit"><i class="fa fa-search"></i> Search Cars</button>
+      </form>
+
+      <div v-if="carSearchPerformed">
+        <div v-if="carResults.length > 0" id="car-results">
+          <div v-for="car in carResults" :key="car.id" class="car-card">
+            <h3>{{ car.model }}</h3>
+            <p>Company: {{ car.company }}</p>
+            <p>Type: {{ car.type }}</p>
+            <p>Price: £{{ car.price }} per day</p>
+            <button @click="bookCar(car.id)">Book Now</button>
+          </div>
+        </div>
+        <div v-else>
+          <p class="no-cars-message">There are no available cars for this criteria.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Car Passenger Form -->
+    <section v-if="currentSection === 'cars' && showCarPassengerForm">
+      <h2 style="text-align: center; text-decoration: underline;">Customer Information</h2>
+      <form @submit.prevent="submitCarPassengerForm">
+        <div class="form-group">
+          <label for="firstName">First Name:</label>
+          <input type="text" v-model="carPassenger.firstName" placeholder="Enter First Name" required>
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last Name:</label>
+          <input type="text" v-model="carPassenger.lastName" placeholder="Enter Last Name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" v-model="carPassenger.email" placeholder="Enter Email" required>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number:</label>
+          <input type="text" v-model="carPassenger.phone" placeholder="Enter Phone Number" required>
+        </div>
+        <div class="form-group">
+          <label for="licenseNumber">License Number:</label>
+          <input type="text" v-model="carPassenger.licenseNumber" placeholder="Enter License Number" required>
+        </div>
+        <button type="submit"><i class="fa fa-check"></i> Confirm Booking</button>
+        <button type="button" @click="showCarPassengerForm = false"><i class="fa fa-times"></i> Cancel</button>
+      </form>
+    </section>
+  </div>
+
   <script src="flight.js"></script>
 </body>
+
 </html>

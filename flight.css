@@ -1,63 +1,116 @@
+/* General Styles */
 body {
-  font-family: Arial, sans-serif;
-  background-color: burlywood;
+  font-family: 'Roboto', sans-serif;
   margin: 0;
   padding: 0;
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  color: #333;
 }
 
-header {
-  background-color: #0078d7;
-  color: white;
-  text-align: center;
-  padding: 15px 0;
-}
-
-h1, h2 {
-  margin: 0;
-}
-
-main {
-  padding: 20px;
-}
-
-form {
+#app {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 20px;
+  min-height: 100vh;
+  padding-top: 130px; /* Space for the fixed header */
 }
 
-.form-group {
-  margin-bottom: 15px;
+header {
+  background-color: #0d47a1;
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
 }
 
-input, button {
+header h1 {
+  font-size: 2.5em;
+  margin: 0;
+  padding: 20px 0;
+  text-align: center;
+}
+
+.navbar {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  list-style: none;
+  padding: 10px 0;
+  margin: 0;
+}
+
+.navbar li {
+  display: inline;
+}
+
+.navbar a {
+  color: white;
+  text-decoration: none;
+  font-size: 1.2em;
+  transition: color 0.3s ease;
+}
+
+.navbar a:hover {
+  color: #bbdefb;
+}
+
+/* Main Content */
+main {
+  width: 100%;
+  max-width: 1200px;
+  padding: 20px;
+  margin: 0 auto;
+  flex-grow: 1; /* Ensures the content takes up remaining space */
+}
+
+/* Forms */
+section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  margin: 20px 0;
+}
+
+section form {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+input,
+select {
   padding: 10px;
-  margin: 5px;
-  border: 1px solid #ccc;
+  border: 1px solid #ddd;
   border-radius: 5px;
   font-size: 1em;
 }
 
 button {
-  background-color: #0078d7;
+  padding: 10px;
+  background: linear-gradient(135deg, #1e88e5, #1565c0);
   color: white;
   border: none;
+  border-radius: 5px;
+  font-size: 1em;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  transition: background 0.3s ease;
 }
 
 button:hover {
-  background-color: #005bb5;
+  background: linear-gradient(135deg, #1565c0, #1e88e5);
 }
 
-#filters {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
+/* Flight Results */
 #results {
   display: flex;
   flex-wrap: wrap;
@@ -68,18 +121,174 @@ button:hover {
 .flight-card {
   background: #fff;
   border: 1px solid #ddd;
-  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
   width: 300px;
-  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 5px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
 }
 
 .flight-card:hover {
   transform: scale(1.05);
-  box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
-.flight-card p {
-  margin: 5px 0;
+.no-flights-message {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.form-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+
+input[type="range"] {
+  flex-grow: 1;
+  margin-top: 0;
+}
+
+label {
+  font-weight: 500;
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 100%;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  text-align: center;
+  font-size: 1.5em;
+  margin-top: 20px;
+}
+
+/* Hotel Results */
+#hotel-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+.hotel-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  width: 300px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.hotel-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.no-hotels-message {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* Car Results */
+#car-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+.car-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  width: 300px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.car-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.no-cars-message {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* Seat Layout */
+.seat-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Ensures vertical centering */
+  gap: 10px;
+  margin: 0 auto; /* Centers the layout */
+  max-width: 500px; /* Adjust width if needed */
+}
+
+
+.seat-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.seat {
+  width: 40px;
+  height: 40px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  text-align: center;
+  line-height: 40px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.seat.selected {
+  background-color: #1e88e5;
+  color: white;
+}
+
+.seat:hover {
+  background-color: #bbdefb;
+}
+
+.aisle {
+  background: none;
+  border: none;
+  width: 20px;
 }
