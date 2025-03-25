@@ -231,7 +231,7 @@ const app = Vue.createApp({
     },
     searchFlights() {
       this.isLoading = true;
-      axios.get('https://witcon-1.onrender.com/', { params: this.searchParams })
+      axios.get('http://localhost:3000/flights', { params: this.searchParams })
         .then(response => {
           this.flights = response.data;
           this.showResults = true;
