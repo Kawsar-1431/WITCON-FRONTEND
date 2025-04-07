@@ -1,11 +1,12 @@
 const app = Vue.createApp({
   data() {
     return {
-      currentSection: 'login', // Tracks the current section
+      currentSection: 'login',
       email: '',
       password: '',
       name: '',
-      rememberMe: false,
+      
+      // Flight search data
       searchParams: {
         origin: '',
         destination: '',
@@ -16,16 +17,40 @@ const app = Vue.createApp({
       flights: [],
       showResults: false,
       noFlightsFound: false,
-      noFlightsInPriceRange: false,
       isLoading: false,
       selectedFlight: null,
+      
+      // Hotel search data
+      hotelParams: {
+        location: '',
+        checkIn: '',
+        checkOut: '',
+        guests: 2,
+        maxPrice: 500,
+        stars: 0,
+        amenities: []
+      },
+      hotels: [],
+      showHotelResults: false,
+      noHotelsFound: false,
+      selectedHotel: null,
+      
+      // Booking data
       showPassengerForm: false,
+      showHotelBookingForm: false,
       passenger: {
         firstName: '',
         lastName: '',
         passportNumber: '',
         email: '',
-        seat: '' // Added seat property
+        seat: ''
+      },
+      hotelPassenger: {
+        firstName: '',
+        lastName: '',
+        passportNumber: '',
+        email: '',
+        roomType: 'Standard'
       },
       availableSeats: [
         { row: 1, seats: ["1A", "1B", "", "1C", "1D"] },
@@ -34,299 +59,436 @@ const app = Vue.createApp({
         { row: 4, seats: ["4A", "4B", "", "4C", "4D"] },
         { row: 5, seats: ["5A", "5B", "", "5C", "5D"] },
       ],
+      roomTypes: ['Standard', 'Deluxe', 'Suite', 'Executive'],
       
-
-      // Hotel-related data
-      hotelSearchParams: {
-        location: '',
-        checkin: '',
-        checkout: '',
-        guests: 1
-      },
-      hotelResults: [],
-      hotelSearchPerformed: false,
-      showHotelPassengerForm: false,
-      hotelPassenger: {
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: ''
-      },
-      selectedHotel: null,
-
-      // Car-related data
-      carSearchParams: {
-        pickupLocation: '',
-        pickupDate: '',
-        carType: 'basic' // Default to 'basic'
-      },
-      carResults: [],
-      carSearchPerformed: false,
-      showCarPassengerForm: false,
-      carPassenger: {
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        licenseNumber: ''
-      },
-      selectedCar: null,
-
-      // Mock data
-      mockHotels: [
-        {
-          id: 1,
-          name: "THE WEST",
-          rating: 4.5,
-          location: "London",
-          price: 200,
-          availableDates: ["2025-06-01", "2025-06-02", "2025-06-03", "2025-06-04", "2025-06-05", "2025-06-06", "2025-06-07"]
-        },
-        {
-          id: 2,
-          name: "PAN KING",
-          rating: 4.8,
-          location: "London",
-          price: 350,
-          availableDates: ["2025-06-01", "2025-06-02", "2025-06-03", "2025-06-04", "2025-06-05", "2025-06-06", "2025-06-07"]
-        },
-        {
-          id: 3,
-          name: "KINGS",
-          rating: 4.2,
-          location: "London",
-          price: 150,
-          availableDates: ["2025-06-01", "2025-06-02", "2025-06-03", "2025-06-04", "2025-06-05", "2025-06-06", "2025-06-07"]
-        },
-        {
-          id: 4,
-          name: "PLAZA INN",
-          rating: 4.7,
-          location: "Tokyo",
-          price: 250,
-          availableDates: ["2025-06-01", "2025-06-02", "2025-06-03", "2025-06-04", "2025-06-05", "2025-06-06", "2025-06-07"]
-        },
-        {
-          id: 5,
-          name: "PARADISE",
-          rating: 4.6,
-          location: "Tokyo",
-          price: 300,
-          availableDates: ["2025-06-01", "2025-06-02", "2025-06-03", "2025-06-04", "2025-06-05", "2025-06-06", "2025-06-07"]
-        },
-        {
-          id: 6,
-          name: "SHUVO",
-          rating: 4.9,
-          location: "Tokyo",
-          price: 400,
-          availableDates: ["2025-06-01", "2025-06-02", "2025-06-03", "2025-06-04", "2025-06-05", "2025-06-06", "2025-06-07"]
-        }
-      ],
-      mockCars: [
-        {
-          id: 1,
-          company: "Regal",
-          model: "Toyota Corolla",
-          type: "basic",
-          price: 45,
-          location: "London",
-          availableDates: ["2025-06-01", "2025-06-02", "2025-06-03", "2025-06-04", "2025-06-05", "2025-06-06", "2025-06-07"]
-        },
-        {
-          id: 2,
-          company: "Bold",
-          model: "BMW 3 series",
-          type: "luxury",
-          price: 75,
-          location: "London",
-          availableDates: ["2025-06-01", "2025-06-02", "2025-06-03", "2025-06-04", "2025-06-05", "2025-06-06", "2025-06-07"]
-        },
-        {
-          id: 3,
-          company: "Otak",
-          model: "BYD",
-          type: "green",
-          price: 150,
-          location: "london",
-          availableDates: ["2025-06-01", "2025-06-02", "2025-06-03", "2025-06-04", "2025-06-05", "2025-06-06", "2025-06-07"]
-        }
-      ]
+      // User data
+      users: JSON.parse(localStorage.getItem('users')) || [],
+      currentUser: JSON.parse(localStorage.getItem('currentUser')) || null
     };
   },
+  
   computed: {
     filteredFlights() {
       let flights = this.flights.filter(flight => flight.price <= this.searchParams.maxPrice);
+      
       if (this.sortBy === 'price') {
         flights.sort((a, b) => a.price - b.price);
       } else if (this.sortBy === 'duration') {
         flights.sort((a, b) => a.duration - b.duration);
       } else if (this.sortBy === 'airline') {
-        flights.sort((a, b) => a.name.localeCompare(b.name));
+        flights.sort((a, b) => a.airline.localeCompare(b.airline));
       }
+      
       return flights;
+    },
+    
+    filteredHotels() {
+      return this.hotels.filter(hotel => {
+        const priceMatch = hotel.rate_per_night?.extracted_lowest <= this.hotelParams.maxPrice;
+        const starsMatch = this.hotelParams.stars === 0 || 
+                         (hotel.extracted_hotel_class && hotel.extracted_hotel_class >= this.hotelParams.stars);
+        
+        return priceMatch && starsMatch;
+      }).sort((a, b) => {
+        return a.rate_per_night?.extracted_lowest - b.rate_per_night?.extracted_lowest;
+      });
+    },
+    
+    availableAmenities() {
+      const allAmenities = new Set();
+      this.hotels.forEach(hotel => {
+        if (hotel.amenities) {
+          hotel.amenities.forEach(amenity => allAmenities.add(amenity));
+        }
+      });
+      return Array.from(allAmenities).slice(0, 20);
     }
   },
+  
   methods: {
+    // Navigation methods
     showLoginSection() {
       this.currentSection = 'login';
       this.clearData();
     },
+    
     showSignupSection() {
       this.currentSection = 'signup';
       this.clearData();
     },
-    showForgotPasswordSection() {
-      this.currentSection = 'forgot-password';
-      this.clearData();
-    },
+    
     showSearchSection() {
+      if (!this.currentUser) {
+        alert('Please login first');
+        this.showLoginSection();
+        return;
+      }
       this.currentSection = 'search';
       this.showResults = false;
       this.showPassengerForm = false;
+      this.showHotelBookingForm = false;
     },
+    
     showHotelsSection() {
+      if (!this.currentUser) {
+        alert('Please login first');
+        this.showLoginSection();
+        return;
+      }
       this.currentSection = 'hotels';
-      this.hotelResults = [];
-      this.hotelSearchPerformed = false;
+      this.showHotelResults = false;
       this.showPassengerForm = false;
-      this.showHotelPassengerForm = false; // Reset hotel form visibility
+      this.showHotelBookingForm = false;
     },
-    showCarsSection() {
-      this.currentSection = 'cars';
-      this.carResults = [];
-      this.carSearchPerformed = false;
+    
+    showBookingsSection() {
+      if (!this.currentUser) {
+        alert('Please login first');
+        this.showLoginSection();
+        return;
+      }
+
+      try {
+        // Refreshes user data from localStorage
+        const updatedUsers = JSON.parse(localStorage.getItem('users')) || [];
+        const updatedUser = updatedUsers.find(u => u.id === this.currentUser.id);
+
+        if (updatedUser) {
+          // Ensures booking array exists
+          if (!updatedUser.bookings) {
+            updatedUser.bookings = [];
+          }
+          
+          this.currentUser = {...updatedUser};
+          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+          console.log('Updated bookings:', updatedUser.bookings);
+        }
+      } catch (error) {
+        console.error('Error loading bookings:', error);
+      }
+
+      this.currentSection = 'bookings';
       this.showPassengerForm = false;
-      this.showCarPassengerForm = false; // Reset car form visibility
+      this.showHotelBookingForm = false;
     },
-    guestLogin() {
-      alert('Guest Login Successful!');
-      this.showSearchSection();
-    },
+    
+    // User authentication methods
     login() {
       if (!this.email || !this.password) {
         alert('Please fill in all fields.');
         return;
       }
-      console.log('Login Attempt:', { email: this.email, password: this.password });
-      alert('Login Successful!');
-      this.showSearchSection();
+
+      const user = this.users.find(u =>
+        u.email === this.email && u.password === this.password
+      );
+
+      if (user) {
+        this.currentUser = user;
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        alert('Login Successful!');
+        this.showSearchSection();
+      } else {
+        alert('Invalid email or password.');
+      }
     },
+    
     signup() {
       if (!this.name || !this.email || !this.password) {
         alert('Please fill in all fields.');
         return;
       }
-      console.log('Signup Attempt:', { name: this.name, email: this.email, password: this.password });
-      alert('Signup Successful!');
-      this.showLoginSection();
-    },
-    resetPassword() {
-      if (!this.email) {
-        alert('Please enter your email.');
+
+      if (this.password.length < 6) {
+        alert('Password must be at least 6 characters long.');
         return;
       }
-      console.log('Reset Password Attempt:', { email: this.email });
-      alert('Password reset instructions sent to your email.');
+
+      const userExists = this.users.some(u => u.email === this.email);
+      if (userExists) {
+        alert('Email already registered.');
+        return;
+      }
+
+      const newUser = {
+        id: Date.now().toString(),
+        name: this.name,
+        email: this.email,
+        password: this.password,
+        bookings: []
+      };
+
+      this.users.push(newUser);
+      localStorage.setItem('users', JSON.stringify(this.users));
+
+      alert('Signup Successful! Please login with your credentials.');
+      this.showLoginSection();
     },
+    
+    logout() {
+      this.currentUser = null;
+      localStorage.removeItem('currentUser');
+      this.showLoginSection();
+    },
+    
+    // Flight methods
     searchFlights() {
+      if (!this.currentUser) {
+        alert('Please login first');
+        this.showLoginSection();
+        return;
+      }
+
       this.isLoading = true;
-      axios.get('http://localhost:3000/flights', { params: this.searchParams })
+      this.flights = [];
+      this.noFlightsFound = false;
+
+      axios.get("http://localhost:3000/api/flights", {
+        params: {
+          origin: this.searchParams.origin.toUpperCase(),
+          destination: this.searchParams.destination.toUpperCase(),
+          date: this.searchParams.date
+        },
+        timeout: 10000
+      })
         .then(response => {
-          this.flights = response.data;
-          this.showResults = true;
-          this.currentSection = 'results';
-          this.noFlightsFound = this.flights.length === 0;
+          const flightsData = response.data.flights || response.data;
+
+          if (flightsData && flightsData.length > 0) {
+            this.flights = flightsData.map(flight => ({
+              ...flight,
+              duration: this.formatDuration(flight.duration),
+              carbonEmissions: `${flight.carbonEmissions} kg CO₂`
+            }));
+            this.showResults = true;
+          } else {
+            this.noFlightsFound = true;
+          }
         })
         .catch(error => {
-          console.error('Error fetching flights:', error);
-          alert('Failed to fetch flights. Please try again later.');
+          console.error("Error:", error);
           this.noFlightsFound = true;
+          alert("Failed to fetch flights. Please try again.");
         })
         .finally(() => {
           this.isLoading = false;
         });
     },
+    
+    // Hotel methods
+    searchHotels() {
+      if (!this.currentUser) {
+        alert('Please login first');
+        this.showLoginSection();
+        return;
+      }
+
+      this.isLoading = true;
+      this.hotels = [];
+      this.noHotelsFound = false;
+
+      axios.get("http://localhost:3000/api/hotels", {
+        params: {
+          location: this.hotelParams.location,
+          checkIn: this.hotelParams.checkIn,
+          checkOut: this.hotelParams.checkOut,
+          guests: this.hotelParams.guests
+        }
+      })
+        .then(response => {
+          if (response.data.hotels && response.data.hotels.length > 0) {
+            this.hotels = response.data.hotels;
+            this.showHotelResults = true;
+          } else {
+            this.noHotelsFound = true;
+          }
+        })
+        .catch(error => {
+          console.error("Error:", error);
+          this.noHotelsFound = true;
+          alert("Failed to fetch hotels. Please try again.");
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
+    
+    // Flight booking methods
     bookFlight(flightId) {
+      if (!this.currentUser) {
+        alert('Please login first');
+        this.showLoginSection();
+        return;
+      }
+
       this.selectedFlight = this.flights.find(flight => flight.id === flightId);
       if (this.selectedFlight) {
+        this.passenger = {
+          firstName: '',
+          lastName: '',
+          passportNumber: '',
+          email: this.currentUser.email,
+          seat: ''
+        };
         this.showPassengerForm = true;
+        this.showHotelBookingForm = false;
       }
     },
+    
     submitPassengerForm() {
       if (!this.passenger.seat) {
         alert('Please select a seat.');
         return;
       }
-      alert(`Passenger ${this.passenger.firstName} ${this.passenger.lastName} booked successfully! Seat: ${this.passenger.seat}`);
+
+      const booking = {
+        type: 'flight',
+        id: Date.now().toString(),
+        item: {...this.selectedFlight},
+        passenger: {...this.passenger},
+        bookingDate: new Date().toISOString(),
+        checkIn: this.searchParams.date,
+        checkOut: this.searchParams.date
+      };
+
+      this.saveBooking(booking);
+
+      alert(`Flight booking confirmed for ${this.passenger.firstName} ${this.passenger.lastName}!\n` +
+        `Flight: ${this.selectedFlight.airline} #${this.selectedFlight.flightNumber}\n` +
+        `Seat: ${this.passenger.seat}`);
+
       this.showPassengerForm = false;
-      this.passenger = { firstName: '', lastName: '', passportNumber: '', email: '', seat: '' };
+      this.showBookingsSection();
     },
+    
+    // Hotel booking methods
+    showHotelBooking(hotel) {
+      this.selectedHotel = hotel;
+      this.hotelPassenger = {
+        firstName: '',
+        lastName: '',
+        passportNumber: '',
+        email: this.currentUser.email,
+        roomType: 'Standard'
+      };
+      this.showHotelBookingForm = true;
+      this.showPassengerForm = false;
+    },
+    
+    cancelHotelBooking() {
+      this.showHotelBookingForm = false;
+      this.selectedHotel = null;
+    },
+    
+    submitHotelBooking() {
+      if (!this.selectedHotel) return;
+
+      const booking = {
+        type: 'hotel',
+        id: Date.now().toString(),
+        item: {...this.selectedHotel},
+        passenger: {...this.hotelPassenger},
+        checkIn: this.hotelParams.checkIn,
+        checkOut: this.hotelParams.checkOut,
+        bookingDate: new Date().toISOString()
+      };
+
+      this.saveBooking(booking);
+
+      alert(`Hotel booking confirmed for ${this.hotelPassenger.firstName} ${this.hotelPassenger.lastName}!\n` +
+        `Hotel: ${this.selectedHotel.name}\n` +
+        `Room Type: ${this.hotelPassenger.roomType}\n` +
+        `Check-in: ${this.hotelParams.checkIn} to ${this.hotelParams.checkOut}`);
+
+      this.showHotelBookingForm = false;
+      this.showBookingsSection();
+    },
+    
+    // Booked flights and hotels  method
+    saveBooking(booking) {
+      try {
+        const bookingCopy = JSON.parse(JSON.stringify(booking));
+        const userIndex = this.users.findIndex(u => u.id === this.currentUser.id);
+        
+        if (userIndex !== -1) {
+          if (!this.users[userIndex].bookings) {
+            this.users[userIndex].bookings = [];
+          }
+          
+          this.users[userIndex].bookings.push(bookingCopy);
+          localStorage.setItem('users', JSON.stringify(this.users));
+          
+          this.currentUser = {...this.users[userIndex]};
+          localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+          
+          this.$forceUpdate();
+          console.log('Booking saved:', bookingCopy);
+        }
+      } catch (error) {
+        console.error('Error saving booking:', error);
+        alert('Failed to save booking. Please try again.');
+      }
+    },
+    
+    // Utility methods
+    formatTime(timeString) {
+      if (!timeString) return '';
+      const date = new Date(timeString);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    },
+    
+    formatDate(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString([], {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    },
+    
+    formatDuration(minutes) {
+      if (!minutes) return '';
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return `${hours}h ${mins}m`;
+    },
+    
     clearData() {
       this.email = '';
       this.password = '';
       this.name = '';
-      this.searchParams.origin = '';
-      this.searchParams.destination = '';
-      this.searchParams.date = '';
-      this.searchParams.maxPrice = 1000;
+      this.searchParams = {
+        origin: '',
+        destination: '',
+        date: '',
+        maxPrice: 1000
+      };
+      this.hotelParams = {
+        location: '',
+        checkIn: '',
+        checkOut: '',
+        guests: 2,
+        maxPrice: 500,
+        stars: 0,
+        amenities: []
+      };
       this.flights = [];
+      this.hotels = [];
       this.showResults = false;
+      this.showHotelResults = false;
       this.noFlightsFound = false;
+      this.noHotelsFound = false;
       this.showPassengerForm = false;
-    },
-    // Hotel methods
-    searchHotels() {
-      this.hotelSearchPerformed = true;
-      setTimeout(() => {
-        this.hotelResults = this.mockHotels.filter(hotel =>
-          hotel.location.toLowerCase().includes(this.hotelSearchParams.location.toLowerCase()) &&
-          hotel.price <= 500 &&
-          hotel.availableDates.includes(this.hotelSearchParams.checkin) &&
-          hotel.availableDates.includes(this.hotelSearchParams.checkout)
-        );
-      }, 500);
-    },
-    bookHotel(hotelId) {
-      if (this.currentSection === 'hotels') {
-        this.selectedHotel = this.mockHotels.find(h => h.id === hotelId);
-        if (this.selectedHotel) {
-          this.showHotelPassengerForm = true;
-        }
-      }
-    },
-    submitHotelPassengerForm() {
-      if (this.currentSection === 'hotels') {
-        alert(`Booking confirmed at ${this.selectedHotel.name} for ${this.hotelPassenger.firstName} ${this.hotelPassenger.lastName}!`);
-        this.showHotelPassengerForm = false;
-        this.hotelPassenger = { firstName: '', lastName: '', email: '', phone: '' };
-      }
-    },
-    // Car methods
-    searchCars() {
-      this.carSearchPerformed = true;
-      setTimeout(() => {
-        this.carResults = this.mockCars.filter(car =>
-          car.type === this.carSearchParams.carType &&
-          car.location.toLowerCase().includes(this.carSearchParams.pickupLocation.toLowerCase()) &&
-          car.availableDates.includes(this.carSearchParams.pickupDate)
-        );
-      }, 500);
-    },
-    bookCar(carId) {
-      if (this.currentSection === 'cars') {
-        this.selectedCar = this.mockCars.find(c => c.id === carId);
-        if (this.selectedCar) {
-          this.showCarPassengerForm = true;
-        }
-      }
-    },
-    submitCarPassengerForm() {
-      if (this.currentSection === 'cars') {
-        alert(`Booking confirmed: ${this.selectedCar.model} from ${this.selectedCar.company} for ${this.carPassenger.firstName} ${this.carPassenger.lastName}!`);
-        this.showCarPassengerForm = false;
-        this.carPassenger = { firstName: '', lastName: '', email: '', phone: '', licenseNumber: '' };
-      }
+      this.showHotelBookingForm = false;
+    }
+  },
+  
+  mounted() {
+    if (this.currentUser) {
+      this.showSearchSection();
     }
   }
 });
