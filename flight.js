@@ -1,12 +1,15 @@
 const app = Vue.createApp({
   data() {
     return {
+      // Tracks which section is currently being shown (e.g., login, search, etc.)
       currentSection: 'login',
+
+      // User authentication inputs
       email: '',
       password: '',
       name: '',
-      
-      // Flight search data
+
+      // Flight search filters
       searchParams: {
         origin: '',
         destination: '',
@@ -19,8 +22,8 @@ const app = Vue.createApp({
       noFlightsFound: false,
       isLoading: false,
       selectedFlight: null,
-      
-      // Hotel search data
+
+      // Hotel search filters
       hotelParams: {
         location: '',
         checkIn: '',
@@ -34,8 +37,8 @@ const app = Vue.createApp({
       showHotelResults: false,
       noHotelsFound: false,
       selectedHotel: null,
-      
-      // Booking data
+
+      // Passenger form visibility and data
       showPassengerForm: false,
       showHotelBookingForm: false,
       passenger: {
@@ -52,6 +55,8 @@ const app = Vue.createApp({
         email: '',
         roomType: 'Standard'
       },
+
+      // Example available seats for selection
       availableSeats: [
         { row: 1, seats: ["1A", "1B", "", "1C", "1D"] },
         { row: 2, seats: ["2A", "2B", "", "2C", "2D"] },
@@ -59,18 +64,21 @@ const app = Vue.createApp({
         { row: 4, seats: ["4A", "4B", "", "4C", "4D"] },
         { row: 5, seats: ["5A", "5B", "", "5C", "5D"] },
       ],
+
+      // Hotel room types
       roomTypes: ['Standard', 'Deluxe', 'Suite', 'Executive'],
-      
-      // User data
+
+      // Persistent user data (from localStorage)
       users: JSON.parse(localStorage.getItem('users')) || [],
       currentUser: JSON.parse(localStorage.getItem('currentUser')) || null
     };
   },
-  
+
   computed: {
+    // Filter and sort flights based on price, duration, or airline
     filteredFlights() {
       let flights = this.flights.filter(flight => flight.price <= this.searchParams.maxPrice);
-      
+
       if (this.sortBy === 'price') {
         flights.sort((a, b) => a.price - b.price);
       } else if (this.sortBy === 'duration') {
@@ -78,22 +86,22 @@ const app = Vue.createApp({
       } else if (this.sortBy === 'airline') {
         flights.sort((a, b) => a.airline.localeCompare(b.airline));
       }
-      
+
       return flights;
     },
-    
+
+    // Filters hotels based on price and star rating
     filteredHotels() {
       return this.hotels.filter(hotel => {
         const priceMatch = hotel.rate_per_night?.extracted_lowest <= this.hotelParams.maxPrice;
-        const starsMatch = this.hotelParams.stars === 0 || 
-                         (hotel.extracted_hotel_class && hotel.extracted_hotel_class >= this.hotelParams.stars);
-        
+        const starsMatch = this.hotelParams.stars === 0 ||
+          (hotel.extracted_hotel_class && hotel.extracted_hotel_class >= this.hotelParams.stars);
+
         return priceMatch && starsMatch;
-      }).sort((a, b) => {
-        return a.rate_per_night?.extracted_lowest - b.rate_per_night?.extracted_lowest;
-      });
+      }).sort((a, b) => a.rate_per_night?.extracted_lowest - b.rate_per_night?.extracted_lowest);
     },
-    
+
+    // Extract a list of up to 20 unique amenities from available hotels
     availableAmenities() {
       const allAmenities = new Set();
       this.hotels.forEach(hotel => {
@@ -104,19 +112,19 @@ const app = Vue.createApp({
       return Array.from(allAmenities).slice(0, 20);
     }
   },
-  
+
   methods: {
-    // Navigation methods
+    // Navigation handlers
     showLoginSection() {
       this.currentSection = 'login';
       this.clearData();
     },
-    
+
     showSignupSection() {
       this.currentSection = 'signup';
       this.clearData();
     },
-    
+
     showSearchSection() {
       if (!this.currentUser) {
         alert('Please login first');
@@ -128,7 +136,7 @@ const app = Vue.createApp({
       this.showPassengerForm = false;
       this.showHotelBookingForm = false;
     },
-    
+
     showHotelsSection() {
       if (!this.currentUser) {
         alert('Please login first');
@@ -140,7 +148,7 @@ const app = Vue.createApp({
       this.showPassengerForm = false;
       this.showHotelBookingForm = false;
     },
-    
+
     showBookingsSection() {
       if (!this.currentUser) {
         alert('Please login first');
@@ -149,17 +157,15 @@ const app = Vue.createApp({
       }
 
       try {
-        // Refreshes user data from localStorage
+        // Updates current user data with latest from localStorage
         const updatedUsers = JSON.parse(localStorage.getItem('users')) || [];
         const updatedUser = updatedUsers.find(u => u.id === this.currentUser.id);
 
         if (updatedUser) {
-          // Ensures booking array exists
           if (!updatedUser.bookings) {
             updatedUser.bookings = [];
           }
-          
-          this.currentUser = {...updatedUser};
+          this.currentUser = { ...updatedUser };
           localStorage.setItem('currentUser', JSON.stringify(updatedUser));
           console.log('Updated bookings:', updatedUser.bookings);
         }
@@ -171,18 +177,15 @@ const app = Vue.createApp({
       this.showPassengerForm = false;
       this.showHotelBookingForm = false;
     },
-    
-    // User authentication methods
+
+    // Authentication logic
     login() {
       if (!this.email || !this.password) {
         alert('Please fill in all fields.');
         return;
       }
 
-      const user = this.users.find(u =>
-        u.email === this.email && u.password === this.password
-      );
-
+      const user = this.users.find(u => u.email === this.email && u.password === this.password);
       if (user) {
         this.currentUser = user;
         localStorage.setItem('currentUser', JSON.stringify(user));
@@ -192,7 +195,7 @@ const app = Vue.createApp({
         alert('Invalid email or password.');
       }
     },
-    
+
     signup() {
       if (!this.name || !this.email || !this.password) {
         alert('Please fill in all fields.');
@@ -220,18 +223,17 @@ const app = Vue.createApp({
 
       this.users.push(newUser);
       localStorage.setItem('users', JSON.stringify(this.users));
-
       alert('Signup Successful! Please login with your credentials.');
       this.showLoginSection();
     },
-    
+
     logout() {
       this.currentUser = null;
       localStorage.removeItem('currentUser');
       this.showLoginSection();
     },
-    
-    // Flight methods
+
+    // Fetches flights from backend API
     searchFlights() {
       if (!this.currentUser) {
         alert('Please login first');
@@ -268,14 +270,14 @@ const app = Vue.createApp({
         .catch(error => {
           console.error("Error:", error);
           this.noFlightsFound = true;
-          alert("Failed to fetch flights. Please try again.");
+          alert("Please try again.");
         })
         .finally(() => {
           this.isLoading = false;
         });
     },
-    
-    // Hotel methods
+
+    // Fetches hotel data from backend API
     searchHotels() {
       if (!this.currentUser) {
         alert('Please login first');
@@ -312,8 +314,8 @@ const app = Vue.createApp({
           this.isLoading = false;
         });
     },
-    
-    // Flight booking methods
+
+    // Shows flight booking form
     bookFlight(flightId) {
       if (!this.currentUser) {
         alert('Please login first');
@@ -334,7 +336,8 @@ const app = Vue.createApp({
         this.showHotelBookingForm = false;
       }
     },
-    
+
+    // Submits flight passenger form
     submitPassengerForm() {
       if (!this.passenger.seat) {
         alert('Please select a seat.');
@@ -344,8 +347,8 @@ const app = Vue.createApp({
       const booking = {
         type: 'flight',
         id: Date.now().toString(),
-        item: {...this.selectedFlight},
-        passenger: {...this.passenger},
+        item: { ...this.selectedFlight },
+        passenger: { ...this.passenger },
         bookingDate: new Date().toISOString(),
         checkIn: this.searchParams.date,
         checkOut: this.searchParams.date
@@ -360,8 +363,8 @@ const app = Vue.createApp({
       this.showPassengerForm = false;
       this.showBookingsSection();
     },
-    
-    // Hotel booking methods
+
+    // Shows hotel booking form
     showHotelBooking(hotel) {
       this.selectedHotel = hotel;
       this.hotelPassenger = {
@@ -374,20 +377,22 @@ const app = Vue.createApp({
       this.showHotelBookingForm = true;
       this.showPassengerForm = false;
     },
-    
+
+    // Cancels hotel booking flow
     cancelHotelBooking() {
       this.showHotelBookingForm = false;
       this.selectedHotel = null;
     },
-    
+
+    // Submits hotel booking
     submitHotelBooking() {
       if (!this.selectedHotel) return;
 
       const booking = {
         type: 'hotel',
         id: Date.now().toString(),
-        item: {...this.selectedHotel},
-        passenger: {...this.hotelPassenger},
+        item: { ...this.selectedHotel },
+        passenger: { ...this.hotelPassenger },
         checkIn: this.hotelParams.checkIn,
         checkOut: this.hotelParams.checkOut,
         bookingDate: new Date().toISOString()
@@ -403,24 +408,24 @@ const app = Vue.createApp({
       this.showHotelBookingForm = false;
       this.showBookingsSection();
     },
-    
-    // Booked flights and hotels  method
+
+    // Saves booking to user's booking list and updates localStorage
     saveBooking(booking) {
       try {
         const bookingCopy = JSON.parse(JSON.stringify(booking));
         const userIndex = this.users.findIndex(u => u.id === this.currentUser.id);
-        
+
         if (userIndex !== -1) {
           if (!this.users[userIndex].bookings) {
             this.users[userIndex].bookings = [];
           }
-          
+
           this.users[userIndex].bookings.push(bookingCopy);
           localStorage.setItem('users', JSON.stringify(this.users));
-          
-          this.currentUser = {...this.users[userIndex]};
+
+          this.currentUser = { ...this.users[userIndex] };
           localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
-          
+
           this.$forceUpdate();
           console.log('Booking saved:', bookingCopy);
         }
@@ -429,14 +434,14 @@ const app = Vue.createApp({
         alert('Failed to save booking. Please try again.');
       }
     },
-    
-    // Utility methods
+
+    // Helper function for formatting dates and times
     formatTime(timeString) {
       if (!timeString) return '';
       const date = new Date(timeString);
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     },
-    
+
     formatDate(dateString) {
       if (!dateString) return '';
       const date = new Date(dateString);
@@ -448,14 +453,15 @@ const app = Vue.createApp({
         minute: '2-digit'
       });
     },
-    
+
     formatDuration(minutes) {
       if (!minutes) return '';
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
       return `${hours}h ${mins}m`;
     },
-    
+
+    // Resets form fields and state
     clearData() {
       this.email = '';
       this.password = '';
@@ -485,7 +491,8 @@ const app = Vue.createApp({
       this.showHotelBookingForm = false;
     }
   },
-  
+
+  // Refirects logged-in user to flight search section
   mounted() {
     if (this.currentUser) {
       this.showSearchSection();
